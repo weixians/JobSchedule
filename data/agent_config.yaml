@@ -1,0 +1,27 @@
+dqn:
+  gamma: 1.0
+  tau: 0.01
+  replay_start_size: 256
+  update_interval: 1
+  # target_update_interval(step)
+  target_update_interval: 200
+  target_update_method: soft
+
+  # optimizer
+  adam:
+    lr: 0.00001
+    lr_eps: 0.000001
+    weight_decay: 0
+    amsgrad: false
+  # epsilon-decay explorer
+  explorer:
+    start_epsilon: 1
+    end_epsilon: 0.1
+    decay_steps: 2000
+  # replay buffer
+  prioritized_replay_buffer:
+    capacity: 100000
+    num_steps: 1
+    alpha: 0.6
+    beta0: 0.4
+    betasteps: 200000

@@ -1,0 +1,6 @@
+gym
+torch
+numpy
+black
+PyYAML
+matplotlib
