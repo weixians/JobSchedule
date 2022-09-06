@@ -12,12 +12,8 @@ import matplotlib.pyplot as plt
 
 class JobEnv(gym.Env):
     def __init__(self, instance: Instance):
-        obs = self.reset()
-        self.observation_space = gym.spaces.Box(low=0, high=1, shape=obs.shape)
-        self.action_space = gym.spaces.Discrete(18)
-        self.action_choices = action_space_builder.build_action_choices(instance.processing_time)
-
         self.instance = instance
+
         self.job_size = instance.job_size
         self.machine_size = instance.machine_size
         self.job_machine_nos = instance.machine_nos
@@ -28,6 +24,11 @@ class JobEnv(gym.Env):
         self.last_process_time_channel = None
         self.last_schedule_finish_channel = None
 
+        obs = self.reset()
+        self.observation_space = gym.spaces.Box(low=0, high=1, shape=obs.shape)
+        self.action_space = gym.spaces.Discrete(18)
+        self.action_choices = action_space_builder.build_action_choices(instance.processing_time)
+
         # 用于实时绘图
         self.process_time_channel = None
         self.schedule_finish_channel = None
@@ -35,6 +36,9 @@ class JobEnv(gym.Env):
         self.i = None
         self.j = None
         self.cell_colors = self.build_cell_colors()
+
+        # 用于tensorboard记录
+        self.make_span = None
 
     def reset(self, **kwargs) -> Union[ObsType, Tuple[ObsType, dict]]:
         # 处理时间
@@ -81,8 +85,8 @@ class JobEnv(gym.Env):
 
     def compute_reward(self, schedule_finish_channel):
         maxes = np.max(schedule_finish_channel, axis=1)
-        make_span = np.max(maxes)
-        return self.total_working_time / (self.machine_size * make_span)
+        self.make_span = np.max(maxes)
+        return self.total_working_time / (self.machine_size * self.make_span)
 
     def normalize_process_time_channel(self, process_time_channel):
         return process_time_channel / self.max_process_time

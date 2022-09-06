@@ -1,0 +1,7 @@
+instance: ft06
+
+train:
+  episodes: 8000
+val:
+  frequency: 100
+  episodes: 10
