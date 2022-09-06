@@ -142,26 +142,26 @@ class JobEnv(gym.Env):
     def render(self, mode="human"):
         plt.clf()
         # plt.figure(figsize=(12, 3))
-        plt.rcParams["font.sans-serif"] = ["SimHei"]  # 设置字体
-        plt.rcParams["axes.unicode_minus"] = False  # 该语句解决图像中的“-”负号的乱码问题
+        # plt.rcParams["font.sans-serif"] = ["SimHei"]  # 设置字体
+        # plt.rcParams["axes.unicode_minus"] = False  # 该语句解决图像中的“-”负号的乱码问题
         plt.rcParams["figure.figsize"] = (16, 3)
         cell_colors = copy.deepcopy(self.cell_colors)
         if self.i is not None and self.j is not None:
             cell_colors[self.i][self.j] = "#ff0521"
         ax00 = plt.subplot(2, 3, 1)
-        ax00.set_title("操作所需时间")
+        ax00.set_title("Operation time table")
         ax00.table(cellText=self.initial_process_time_channel, loc="center", cellColours=cell_colors)
         ax00.axis("off")
 
         ax01 = plt.subplot(2, 3, 2)
-        ax01.set_title("对应机器编号")
+        ax01.set_title("machine number table")
         ax01.table(cellText=self.job_machine_nos, loc="center", cellColours=cell_colors)
         ax01.axis("off")
 
         ax02 = plt.subplot(2, 3, 3)
         colors = ["#ffffff" for i in range(self.machine_size)]
         colors[self.job_machine_nos[self.i, self.j]] = "#ff0521"
-        ax02.set_title("机器完成时间")
+        ax02.set_title("machine finish time")
         ax02.table(cellText=[self.machine_finish_time], loc="center", cellColours=[colors])
         ax02.axis("off")
 
