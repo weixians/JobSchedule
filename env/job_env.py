@@ -69,7 +69,7 @@ class JobEnv(gym.Env):
     def step(
         self, action: ActType
     ) -> Union[Tuple[ObsType, float, bool, bool, dict], Tuple[ObsType, float, bool, dict]]:
-        logging.info("动作选择: {}".format(action))
+        # logging.info("动作选择: {}".format(action))
         self.step_count += 1
         rule = self.action_choices[action]
         i, j = rule(self.last_process_time_channel)
