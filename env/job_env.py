@@ -72,13 +72,15 @@ class JobEnv(gym.Env):
         return obs, reward, done, {}
 
     def get_obs(self, process_time_channel, schedule_finish_channel, machine_utilization_channel):
-        obs = np.vstack(
+        obs = np.array(
             [
                 self.normalize_process_time_channel(process_time_channel),
                 self.normalize_schedule_finish_channel(schedule_finish_channel),
                 machine_utilization_channel,
-            ]
-        ).swapaxes(0, 1)
+            ],
+            dtype=np.float32,
+        )
+        # obs = obs.swapaxes(0, 2)
         self.last_process_time_channel = process_time_channel
         self.last_schedule_finish_channel = schedule_finish_channel
         return obs
@@ -95,7 +97,7 @@ class JobEnv(gym.Env):
     def normalize_schedule_finish_channel(schedule_finish_channel):
         maxes = np.max(schedule_finish_channel, axis=1)
         make_span = np.max(maxes)
-        return schedule_finish_channel / make_span
+        return schedule_finish_channel / make_span if make_span != 0 else schedule_finish_channel
 
     @staticmethod
     def compute_machine_utilization(machine_running_time_table):

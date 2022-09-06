@@ -1,4 +1,4 @@
-instance: ft06
+instance: la16
 
 train:
   episodes: 8000

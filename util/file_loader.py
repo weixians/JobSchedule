@@ -44,7 +44,7 @@ def load_instances(filename):
                 instance.machine_nos = data[:, 0::2]
                 instance.processing_time = data[:, 1::2]
                 instance_dict[instance.name] = instance
-                print(instance.__dict__)
+                # print(instance.__dict__)
             i += 1
     return instance_dict
 
