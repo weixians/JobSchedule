@@ -83,9 +83,9 @@ class JobEnv(gym.Env):
         process_time_channel = copy.deepcopy(self.last_process_time_channel)
         process_time_channel[i, j] = 0
         schedule_finish_channel = self.compute_schedule_finish_channel(i, j)
+        self.compute_make_span_after_operation(schedule_finish_channel)
         machine_utilization_channel = self.compute_machine_utilization(process_time_channel)
 
-        self.compute_make_span_after_operation(schedule_finish_channel)
         self.update_machine_finish_time(i, j)
 
         obs = self.get_obs(process_time_channel, schedule_finish_channel, machine_utilization_channel)
