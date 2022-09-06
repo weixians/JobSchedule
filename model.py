@@ -14,7 +14,15 @@ class Net2(nn.Module):
         self.cnn3 = nn.Sequential(nn.Conv2d(60, 50, (3, 3), stride=(1, 1), padding=0), nn.ReLU(), nn.BatchNorm2d(50))
         self.cnn4 = nn.Sequential(nn.Conv2d(50, 20, (6, 6), stride=(1, 1), padding=0), nn.ReLU(), nn.BatchNorm2d(20))
 
-        self.value_mlp = nn.Sequential(nn.Linear(80, 512), nn.ReLU(), nn.Linear(512, action_size))
+        self.value_mlp = nn.Sequential(
+            nn.Linear(80, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, action_size),
+        )
 
     def forward(self, x):
         batch_size = x.shape[0]

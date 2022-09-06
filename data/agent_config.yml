@@ -1,7 +1,7 @@
 gamma: 1.0
 tau: 0.01
 minibatch_size: 256
-replay_start_size: 256
+replay_start_size: 1000
 update_interval: 1
 # target_update_interval(step)
 target_update_interval: 200

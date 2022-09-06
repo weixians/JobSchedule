@@ -37,6 +37,7 @@ class JobEnv(gym.Env):
         # 用于记录
         self.episode_count = 0
         self.step_count = 0
+        self.phase = None
         # 用于实时绘图
         self.process_time_channel = None
         self.schedule_finish_channel = None
@@ -52,6 +53,7 @@ class JobEnv(gym.Env):
         self.machine_finish_time = np.zeros(self.machine_size, dtype=np.int32)
         # 用于记录
         self.episode_count = kwargs.get("episode") if "episode" in kwargs else 0
+        self.phase = kwargs.get("phase") if "phase" in kwargs else "train"
         self.step_count = 0
         self.history_i_j = []
         self.history_make_span = [0]
@@ -81,15 +83,14 @@ class JobEnv(gym.Env):
         process_time_channel = copy.deepcopy(self.last_process_time_channel)
         process_time_channel[i, j] = 0
         schedule_finish_channel = self.compute_schedule_finish_channel(i, j)
-        machine_running_time_table = self.initial_process_time_channel - process_time_channel
-        machine_utilization_channel = self.compute_machine_utilization(machine_running_time_table)
+        machine_utilization_channel = self.compute_machine_utilization(process_time_channel)
 
         self.compute_make_span_after_operation(schedule_finish_channel)
         self.update_machine_finish_time(i, j)
 
         obs = self.get_obs(process_time_channel, schedule_finish_channel, machine_utilization_channel)
-        reward = self.compute_reward()
         done = np.sum(process_time_channel) == 0
+        reward = self.compute_reward() if done else 0
         self.set_data_for_visualization(
             process_time_channel, schedule_finish_channel, machine_utilization_channel, i, j
         )
@@ -141,10 +142,9 @@ class JobEnv(gym.Env):
         make_span = np.max(maxes)
         return schedule_finish_channel / make_span if make_span != 0 else schedule_finish_channel
 
-    @staticmethod
-    def compute_machine_utilization(machine_running_time_table):
-        sums = np.sum(machine_running_time_table, axis=1)
-        return machine_running_time_table / np.max(sums)
+    def compute_machine_utilization(self, process_time_channel):
+        machine_running_time_table = self.initial_process_time_channel - process_time_channel
+        return machine_running_time_table / self.make_span
 
     def set_data_for_visualization(
         self, process_time_channel, schedule_finish_channel, machine_utilization_channel, i, j
@@ -212,6 +212,8 @@ class JobEnv(gym.Env):
             dpi=500,
         )
         # plt.pause(0.4)
+        plt.clf()
+        plt.close()
 
     def build_cell_colors(self):
         cell_colors = []

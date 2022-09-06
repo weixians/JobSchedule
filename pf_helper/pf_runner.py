@@ -36,7 +36,7 @@ class PfRunner:
         shortest_make_span = np.inf
         for i in range(1, self.run_config["train"]["episodes"] + 1):
             phase = "train"
-            obs = self.env.reset()
+            obs = self.env.reset(episode=i, phase=phase)
             R = 0  # return (sum of rewards)
             t = 0  # time step
             while True:
@@ -75,7 +75,7 @@ class PfRunner:
         with agent.eval_mode():
             pbar = tqdm(range((start_i - 1) * n_episodes + 1, start_i * n_episodes + 1))
             for i in pbar:
-                obs = self.env.reset()
+                obs = self.env.reset(episode=i, phase=phase)
                 R = 0  # return (sum of rewards)
                 t = 0  # time step
                 # if self.args.render:
