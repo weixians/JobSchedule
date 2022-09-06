@@ -55,6 +55,7 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
+    global_util.setup_logger()
     copy_data_folder_to_output(args, True)
     run_config = global_util.load_yaml(os.path.join(args.output, "data/run_config.yml"))
     instance_dict = load_instances(os.path.join(args.output, "data/jobshop1.txt"))

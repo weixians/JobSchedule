@@ -1,4 +1,5 @@
 import copy
+import logging
 import os
 from typing import Union, Tuple
 
@@ -43,6 +44,7 @@ class JobEnv(gym.Env):
         self.i = None
         self.j = None
         self.cell_colors = self.build_cell_colors()
+        self.history_i_j = None
 
     def reset(self, **kwargs) -> Union[ObsType, Tuple[ObsType, dict]]:
         self.make_span = 0
@@ -50,6 +52,7 @@ class JobEnv(gym.Env):
         # 用于记录
         self.episode_count = kwargs.get("episode") if "episode" in kwargs else 0
         self.step_count = 0
+        self.history_i_j = []
 
         # 处理时间
         process_time_channel = copy.deepcopy(self.instance.processing_time)
@@ -66,17 +69,18 @@ class JobEnv(gym.Env):
     def step(
         self, action: ActType
     ) -> Union[Tuple[ObsType, float, bool, bool, dict], Tuple[ObsType, float, bool, dict]]:
+        logging.info("动作选择: {}".format(action))
         self.step_count += 1
         rule = self.action_choices[action]
         i, j = rule(self.last_process_time_channel)
+        self.history_i_j.append([i, j])
         process_time_channel = copy.deepcopy(self.last_process_time_channel)
-        schedule_finish_channel = copy.deepcopy(self.last_schedule_finish_channel)
-        schedule_finish_channel[i, j] = process_time_channel[i, j] + self.make_span
         process_time_channel[i, j] = 0
+        schedule_finish_channel = self.compute_schedule_finish_channel(i, j)
         machine_running_time_table = self.initial_process_time_channel - process_time_channel
         machine_utilization_channel = self.compute_machine_utilization(machine_running_time_table)
 
-        self.compute_make_span(schedule_finish_channel, i, j)
+        self.compute_make_span_after_operation(schedule_finish_channel, i, j)
         self.update_machine_finish_time(i, j)
 
         obs = self.get_obs(process_time_channel, schedule_finish_channel, machine_utilization_channel)
@@ -104,7 +108,19 @@ class JobEnv(gym.Env):
     def compute_reward(self):
         return self.total_working_time / (self.machine_size * self.make_span)
 
-    def compute_make_span(self, schedule_finish_channel, i, j):
+    def compute_schedule_finish_channel(self, i, j):
+        schedule_finish_channel = copy.deepcopy(self.last_schedule_finish_channel)
+        if j == 0:
+            schedule_finish_channel[i, j] = (
+                self.initial_process_time_channel[i, j] + self.machine_finish_time[self.job_machine_nos[i, j]]
+            )
+        else:
+            schedule_finish_channel[i, j] = self.initial_process_time_channel[i, j] + max(
+                self.machine_finish_time[self.job_machine_nos[i, j]], schedule_finish_channel[i, j - 1]
+            )
+        return schedule_finish_channel
+
+    def compute_make_span_after_operation(self, schedule_finish_channel, i, j):
         # 获取当前job到目前为止的完成时间
         op_finish_time = 0 if j == 0 else schedule_finish_channel[i, j - 1]
         # 对比当前任务时间及新任务对应机器的完成时间，取大的
@@ -148,13 +164,15 @@ class JobEnv(gym.Env):
         cell_colors = copy.deepcopy(self.cell_colors)
         if self.i is not None and self.j is not None:
             cell_colors[self.i][self.j] = "#ff0521"
+            if len(self.history_i_j) > 1:
+                cell_colors[self.history_i_j[-2][0]][self.history_i_j[-2][1]] = "#B4EEB4"
         ax00 = plt.subplot(2, 3, 1)
-        ax00.set_title("Operation time table")
+        ax00.set_title("Operation time")
         ax00.table(cellText=self.initial_process_time_channel, loc="center", cellColours=cell_colors)
         ax00.axis("off")
 
         ax01 = plt.subplot(2, 3, 2)
-        ax01.set_title("machine number table")
+        ax01.set_title("machine number")
         ax01.table(cellText=self.job_machine_nos, loc="center", cellColours=cell_colors)
         ax01.axis("off")
 
