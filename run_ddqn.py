@@ -9,6 +9,8 @@ from pf_helper.pf_runner import PfRunner
 from util import global_util
 from util.file_loader import load_instances
 
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 
 def copy_data_folder_to_output(args, override=False):
     """
@@ -57,7 +59,7 @@ if __name__ == "__main__":
     run_config = global_util.load_yaml(os.path.join(args.output, "data/run_config.yml"))
     instance_dict = load_instances(os.path.join(args.output, "data/jobshop1.txt"))
 
-    env = JobEnv(instance_dict[run_config["instance"]])
+    env = JobEnv(args, instance_dict[run_config["instance"]])
     action_size = env.action_space.n
     q_local_net = Net2(action_size)
     agent = build_dqn_agent(lambda x: x, args.data_dir, gpu=args.gpu, model=q_local_net, action_size=action_size)

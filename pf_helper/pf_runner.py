@@ -5,6 +5,7 @@ from queue import Queue
 from typing import Dict
 
 import numpy as np
+from matplotlib import pyplot as plt
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
 
@@ -78,6 +79,8 @@ class PfRunner:
                 obs = self.env.reset()
                 R = 0  # return (sum of rewards)
                 t = 0  # time step
+                # if self.args.render:
+                #     plt.ion()
                 while True:
                     action = agent.act(obs)
                     obs, reward, done, info = self.env.step(action)
@@ -86,8 +89,10 @@ class PfRunner:
                     agent.observe(obs, reward, done, False)
                     if done:
                         break
-                if self.args.render:
-                    self.env.render()
+                    if self.args.render:
+                        self.env.render()
+                # plt.ioff()
+                # plt.show()
 
                 statistics = agent.get_statistics()
                 self.add_scalar(phase + "/episode_reward", R, i)
