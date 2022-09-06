@@ -17,12 +17,13 @@ class Net2(nn.Module):
         self.value_mlp = nn.Sequential(nn.Linear(80, 512), nn.ReLU(), nn.Linear(512, action_size))
 
     def forward(self, x):
+        batch_size = x.shape[0]
         h = self.cnn1(x)
         h = self.cnn2(h)
         h = self.cnn3(h)
         h = self.cnn4(h)
 
-        h = h.flatten()
+        h = h.flatten().reshape((batch_size, -1))
 
         out2 = self.value_mlp(h)
         return pfrl.action_value.DiscreteActionValue(out2)

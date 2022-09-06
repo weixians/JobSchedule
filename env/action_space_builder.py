@@ -70,7 +70,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.ones(self.job_num) * np.inf
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -87,7 +87,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.zeros(self.job_num)
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -104,7 +104,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.ones(self.job_num) * np.inf
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -125,7 +125,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.zeros(self.job_num)
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -146,7 +146,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.ones(self.job_num) * np.inf
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -163,7 +163,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.zeros(self.job_num)
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -180,7 +180,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.ones(self.job_num) * np.inf
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -197,7 +197,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.zeros(self.job_num)
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -214,7 +214,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.ones(self.job_num) * np.inf
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -232,7 +232,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.zeros(self.job_num)
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -250,7 +250,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.ones(self.job_num) * np.inf
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -268,7 +268,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.zeros(self.job_num)
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -286,7 +286,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.ones(self.job_num) * np.inf
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -303,7 +303,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.zeros(self.job_num)
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -320,7 +320,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.ones(self.job_num) * np.inf
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -337,7 +337,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.zeros(self.job_num)
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -354,7 +354,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.ones(self.job_num) * np.inf
         for i in range(self.job_num):
             for j in range(self.operation_num):
@@ -371,7 +371,7 @@ class ScheduleRule:
         :param process_time_table:
         :return:
         """
-        op_inds = np.ones(self.operation_num) * -1
+        op_inds = np.ones(self.operation_num, dtype=np.int32) * -1
         time_arr = np.zeros(self.job_num)
         for i in range(self.job_num):
             for j in range(self.operation_num):
