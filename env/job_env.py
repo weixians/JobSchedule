@@ -29,6 +29,7 @@ class JobEnv(gym.Env):
         self.action_space = gym.spaces.Discrete(18)
         self.action_choices = action_space_builder.build_action_choices(instance.processing_time)
 
+        self.step_count = 0
         # 用于实时绘图
         self.process_time_channel = None
         self.schedule_finish_channel = None
@@ -41,6 +42,7 @@ class JobEnv(gym.Env):
         self.make_span = None
 
     def reset(self, **kwargs) -> Union[ObsType, Tuple[ObsType, dict]]:
+        self.step_count = 0
         # 处理时间
         process_time_channel = copy.deepcopy(self.instance.processing_time)
         # 调度完成时
@@ -51,14 +53,15 @@ class JobEnv(gym.Env):
         return obs
 
     def step(
-        self, action: ActType
+            self, action: ActType
     ) -> Union[Tuple[ObsType, float, bool, bool, dict], Tuple[ObsType, float, bool, dict]]:
+        self.step_count += 1
         rule = self.action_choices[action]
         i, j = rule(self.last_process_time_channel)
         process_time_channel = copy.deepcopy(self.last_process_time_channel)
         schedule_finish_channel = copy.deepcopy(self.last_schedule_finish_channel)
         schedule_finish_channel[i, j] = (
-            process_time_channel[i, j] if j == 0 else np.sum(process_time_channel[i, j - 1 : j + 1])
+            process_time_channel[i, j] if j == 0 else np.sum(process_time_channel[i, j - 1: j + 1])
         )
         process_time_channel[i, j] = 0
 
@@ -67,9 +70,10 @@ class JobEnv(gym.Env):
 
         obs = self.get_obs(process_time_channel, schedule_finish_channel, machine_utilization_channel)
         reward = self.compute_reward(schedule_finish_channel)
-        done = np.sum(process_time_channel) == 0
+        done = np.sum(process_time_channel) == 0 or self.step_count >= 1000
+        info = {"status": "timeout"} if self.step_count >= 1000 else {}
 
-        return obs, reward, done, {}
+        return obs, reward, done, info
 
     def get_obs(self, process_time_channel, schedule_finish_channel, machine_utilization_channel):
         obs = np.array(
@@ -105,7 +109,7 @@ class JobEnv(gym.Env):
         return machine_running_time_table / np.max(sums)
 
     def set_data_for_visualization(
-        self, process_time_channel, schedule_finish_channel, machine_utilization_channel, i, j
+            self, process_time_channel, schedule_finish_channel, machine_utilization_channel, i, j
     ):
         self.process_time_channel = process_time_channel
         self.schedule_finish_channel = schedule_finish_channel

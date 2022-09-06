@@ -6,3 +6,4 @@ PyYAML
 matplotlib
 tensorboardX
 tqdm
+filelock

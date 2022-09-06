@@ -50,6 +50,7 @@ class PfRunner:
                 self.env.render()
 
             statistics = agent.get_statistics()
+            print(info)
             self.add_scalar(phase + "/episode_reward", R, i)
             self.add_scalar(phase + "/makespan", self.env.make_span, i)
             self.add_scalar(phase + "/average_q", statistics[0][1], i)
