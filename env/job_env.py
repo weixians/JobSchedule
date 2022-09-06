@@ -43,8 +43,9 @@ class JobEnv(gym.Env):
         self.machine_utilization_channel = None
         self.i = None
         self.j = None
-        self.cell_colors = self.build_cell_colors()
+        self.cell_colors = None
         self.history_i_j = None
+        self.history_make_span = []
 
     def reset(self, **kwargs) -> Union[ObsType, Tuple[ObsType, dict]]:
         self.make_span = 0
@@ -53,6 +54,8 @@ class JobEnv(gym.Env):
         self.episode_count = kwargs.get("episode") if "episode" in kwargs else 0
         self.step_count = 0
         self.history_i_j = []
+        self.history_make_span = [0]
+        self.cell_colors = self.build_cell_colors()
 
         # 处理时间
         process_time_channel = copy.deepcopy(self.instance.processing_time)
@@ -74,13 +77,14 @@ class JobEnv(gym.Env):
         rule = self.action_choices[action]
         i, j = rule(self.last_process_time_channel)
         self.history_i_j.append([i, j])
+
         process_time_channel = copy.deepcopy(self.last_process_time_channel)
         process_time_channel[i, j] = 0
         schedule_finish_channel = self.compute_schedule_finish_channel(i, j)
         machine_running_time_table = self.initial_process_time_channel - process_time_channel
         machine_utilization_channel = self.compute_machine_utilization(machine_running_time_table)
 
-        self.compute_make_span_after_operation(schedule_finish_channel, i, j)
+        self.compute_make_span_after_operation(schedule_finish_channel)
         self.update_machine_finish_time(i, j)
 
         obs = self.get_obs(process_time_channel, schedule_finish_channel, machine_utilization_channel)
@@ -120,14 +124,10 @@ class JobEnv(gym.Env):
             )
         return schedule_finish_channel
 
-    def compute_make_span_after_operation(self, schedule_finish_channel, i, j):
-        # 获取当前job到目前为止的完成时间
-        op_finish_time = 0 if j == 0 else schedule_finish_channel[i, j - 1]
+    def compute_make_span_after_operation(self, schedule_finish_channel):
         # 对比当前任务时间及新任务对应机器的完成时间，取大的
-        self.make_span = (
-            max(op_finish_time, self.machine_finish_time[self.job_machine_nos[i, j]])
-            + self.initial_process_time_channel[i, j]
-        )
+        self.make_span = np.max(schedule_finish_channel)
+        self.history_make_span.append(self.make_span)
 
     def update_machine_finish_time(self, i, j):
         self.machine_finish_time[self.job_machine_nos[i, j]] += self.initial_process_time_channel[i, j]
@@ -157,46 +157,51 @@ class JobEnv(gym.Env):
 
     def render(self, mode="human"):
         plt.clf()
-        # plt.figure(figsize=(12, 3))
+        fig = plt.figure(figsize=(16, 8))
         # plt.rcParams["font.sans-serif"] = ["SimHei"]  # 设置字体
         # plt.rcParams["axes.unicode_minus"] = False  # 该语句解决图像中的“-”负号的乱码问题
-        plt.rcParams["figure.figsize"] = (16, 3)
-        cell_colors = copy.deepcopy(self.cell_colors)
+        # plt.rcParams["figure.figsize"] = (20, 3)
+        cell_colors = self.cell_colors
         if self.i is not None and self.j is not None:
             cell_colors[self.i][self.j] = "#ff0521"
             if len(self.history_i_j) > 1:
                 cell_colors[self.history_i_j[-2][0]][self.history_i_j[-2][1]] = "#B4EEB4"
-        ax00 = plt.subplot(2, 3, 1)
-        ax00.set_title("Operation time")
-        ax00.table(cellText=self.initial_process_time_channel, loc="center", cellColours=cell_colors)
-        ax00.axis("off")
 
-        ax01 = plt.subplot(2, 3, 2)
-        ax01.set_title("machine number")
-        ax01.table(cellText=self.job_machine_nos, loc="center", cellColours=cell_colors)
-        ax01.axis("off")
+        ax11 = fig.add_subplot(2, 4, 1)
+        ax11.set_title("Operation time")
+        ax11.table(cellText=self.initial_process_time_channel, loc="center", cellColours=cell_colors)
+        ax11.axis("off")
 
-        ax02 = plt.subplot(2, 3, 3)
+        ax12 = fig.add_subplot(2, 4, 2)
+        ax12.set_title("machine number")
+        ax12.table(cellText=self.job_machine_nos, loc="center", cellColours=cell_colors)
+        ax12.axis("off")
+
+        ax13 = fig.add_subplot(2, 4, 3)
         colors = ["#ffffff" for i in range(self.machine_size)]
         colors[self.job_machine_nos[self.i, self.j]] = "#ff0521"
-        ax02.set_title("machine finish time")
-        ax02.table(cellText=[self.machine_finish_time], loc="center", cellColours=[colors])
-        ax02.axis("off")
+        ax13.set_title("machine finish time")
+        ax13.table(cellText=[self.machine_finish_time], loc="center", cellColours=[colors])
+        ax13.axis("off")
 
-        ax1 = plt.subplot(2, 3, 4)
-        ax1.set_title("processing time")
-        ax1.table(cellText=self.process_time_channel, loc="center", cellColours=cell_colors)
-        ax1.axis("off")
+        ax14 = fig.add_subplot(2, 4, 4)
+        ax14.set_title("make span")
+        ax14.plot(range(len(self.history_make_span)), self.history_make_span)
 
-        ax2 = plt.subplot(2, 3, 5)
-        ax2.set_title("schedule finish")
-        ax2.table(cellText=self.schedule_finish_channel, loc="center", cellColours=cell_colors)
-        ax2.axis("off")
+        ax21 = fig.add_subplot(2, 4, 5)
+        ax21.set_title("processing time")
+        ax21.table(cellText=self.process_time_channel, loc="center", cellColours=cell_colors)
+        ax21.axis("off")
 
-        ax3 = plt.subplot(2, 3, 6)
-        ax3.set_title("machine utilization")
-        ax3.table(cellText=self.machine_utilization_channel, loc="center", cellColours=cell_colors)
-        ax3.axis("off")
+        ax22 = fig.add_subplot(2, 4, 6)
+        ax22.set_title("schedule finish")
+        ax22.table(cellText=self.schedule_finish_channel, loc="center", cellColours=cell_colors)
+        ax22.axis("off")
+
+        ax23 = fig.add_subplot(2, 4, 7)
+        ax23.set_title("machine utilization")
+        ax23.table(cellText=self.machine_utilization_channel, loc="center", cellColours=cell_colors)
+        ax23.axis("off")
 
         folder = os.path.join(self.args.output, "render")
         os.makedirs(folder, exist_ok=True)
