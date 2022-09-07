@@ -16,7 +16,7 @@ adam:
 explorer:
   start_epsilon: 0.9
   end_epsilon: 0.1
-  decay_steps: 500
+  decay_steps: 20000
 # replay buffer
 prioritized_replay_buffer:
   capacity: 100000
