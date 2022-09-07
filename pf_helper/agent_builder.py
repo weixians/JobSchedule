@@ -31,6 +31,7 @@ def build_dqn_agent(phi, config_dir: str, gpu: int, model: torch.nn.Module, acti
         alpha=agent_config["prioritized_replay_buffer"]["alpha"],
         beta0=agent_config["prioritized_replay_buffer"]["beta0"],
         betasteps=agent_config["prioritized_replay_buffer"]["betasteps"],
+        normalize_by_max=agent_config["prioritized_replay_buffer"]["normalize_by_max"],
     )
 
     # Now create an agent that will interact with the environment.

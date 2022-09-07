@@ -14,9 +14,9 @@ adam:
   amsgrad: false
 # epsilon-decay explorer
 explorer:
-  start_epsilon: 1
+  start_epsilon: 0.9
   end_epsilon: 0.1
-  decay_steps: 2000
+  decay_steps: 500
 # replay buffer
 prioritized_replay_buffer:
   capacity: 100000
@@ -24,3 +24,4 @@ prioritized_replay_buffer:
   alpha: 0.6
   beta0: 0.4
   betasteps: 200000
+  normalize_by_max: false
