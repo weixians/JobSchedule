@@ -88,8 +88,6 @@ class JobEnv(gym.Env):
         self.compute_make_span_after_operation(schedule_finish_channel)
         machine_utilization_channel = self.compute_machine_utilization(process_time_channel)
 
-        self.update_machine_finish_time(i, j)
-
         obs = self.get_obs(process_time_channel, schedule_finish_channel, machine_utilization_channel)
         reward = self.compute_reward()
         done = np.sum(process_time_channel) == 0
@@ -121,13 +119,18 @@ class JobEnv(gym.Env):
     def compute_schedule_finish_channel(self, i, j):
         schedule_finish_channel = copy.deepcopy(self.last_schedule_finish_channel)
         if j == 0:
+            # 处于某个job第一个operation位置，只需要关注机器时间
             schedule_finish_channel[i, j] = (
                 self.initial_process_time_channel[i, j] + self.machine_finish_time[self.job_machine_nos[i, j]]
             )
         else:
+            # 对比上一个操作完成时间和对应机器时间，取大的
             schedule_finish_channel[i, j] = self.initial_process_time_channel[i, j] + max(
                 self.machine_finish_time[self.job_machine_nos[i, j]], schedule_finish_channel[i, j - 1]
             )
+        # 更新机器完成时间(某个作业在该机器上的完成时间即为该机器到目前位置的完成时间)
+        self.machine_finish_time[self.job_machine_nos[i, j]] = schedule_finish_channel[i, j]
+
         return schedule_finish_channel
 
     def compute_make_span_after_operation(self, schedule_finish_channel):
@@ -136,7 +139,11 @@ class JobEnv(gym.Env):
         self.history_make_span.append(self.make_span)
 
     def update_machine_finish_time(self, i, j):
-        self.machine_finish_time[self.job_machine_nos[i, j]] += self.initial_process_time_channel[i, j]
+        """
+        计算机器完成某个operation后的时刻
+        """
+        if j == 0:
+            self.machine_finish_time[self.job_machine_nos[i, j]] += self.initial_process_time_channel[i, j]
 
     def normalize_process_time_channel(self, process_time_channel):
         return process_time_channel / self.max_process_time
