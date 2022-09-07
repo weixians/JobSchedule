@@ -93,7 +93,7 @@ class JobEnv(gym.Env):
         machine_utilization_channel = self.compute_machine_utilization(process_time_channel)
 
         obs = self.get_obs(process_time_channel, schedule_finish_channel, machine_utilization_channel)
-        reward = self.compute_reward()
+        reward = self.compute_reward(process_time_channel)
         done = np.sum(process_time_channel) == 0
         self.set_data_for_visualization(
             process_time_channel, schedule_finish_channel, machine_utilization_channel, i, j
@@ -114,8 +114,10 @@ class JobEnv(gym.Env):
         self.last_schedule_finish_channel = schedule_finish_channel
         return obs
 
-    def compute_reward(self):
-        u_t = self.total_working_time / (self.machine_size * self.make_span)
+    def compute_reward(self, process_time_channel):
+        # u_t = self.total_working_time / (self.machine_size * self.make_span)
+        # 总working time可能指的是当前处理的所有operation的总时间
+        u_t = np.sum(self.initial_process_time_channel - process_time_channel) / (self.machine_size * self.make_span)
         reward = u_t - self.u_t
         self.u_t = u_t
         return reward
@@ -150,8 +152,12 @@ class JobEnv(gym.Env):
         return schedule_finish_channel / make_span if make_span != 0 else schedule_finish_channel
 
     def compute_machine_utilization(self, process_time_channel):
+        # 计算该operation在该机器中所用时间占比
         machine_running_time_table = self.initial_process_time_channel - process_time_channel
-        return machine_running_time_table / self.make_span
+        machine_finish_time_table = self.machine_finish_time_arr[self.job_machine_nos[:, :]]
+        # avoid nan error
+        machine_finish_time_table[machine_finish_time_table == 0] = 1
+        return machine_running_time_table / machine_finish_time_table
 
     def set_data_for_visualization(
         self, process_time_channel, schedule_finish_channel, machine_utilization_channel, i, j
