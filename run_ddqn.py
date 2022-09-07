@@ -42,6 +42,14 @@ def copy_data_folder_to_output(args, override=False):
     args.data_dir = os.path.join(args.output, "data")
 
 
+def build_network(args):
+    if args.net == "net2":
+        q_local_net = Net2(action_size)
+    else:
+        q_local_net = NetMLP(input_dim, action_size)
+    return q_local_net
+
+
 def parse_args():
     parser = argparse.ArgumentParser("Parse configuration")
     parser.add_argument("--output", type=str, default="../output_jobshop", help="root path of output dir")
@@ -63,17 +71,16 @@ if __name__ == "__main__":
     copy_data_folder_to_output(args, True)
     run_config = global_util.load_yaml(os.path.join(args.output, "data/run_config.yml"))
     instance_dict = load_instances(os.path.join(args.output, "data/jobshop1.txt"))
+    instance = instance_dict[run_config["instance"]]
+    skip_num = 0.2 * instance.job_size * instance.machine_size
 
-    env = JobEnv(args, instance_dict[run_config["instance"]])
+    env = JobEnv(args, instance)
     input_dim = env.observation_space.shape
     action_size = env.action_space.n
-
-    if args.net == "net2":
-        q_local_net = Net2(action_size)
-    else:
-        q_local_net = NetMLP(input_dim, action_size)
-
-    agent = build_dqn_agent(lambda x: x, args.data_dir, gpu=args.gpu, model=q_local_net, action_size=action_size)
+    q_local_net = build_network(args)
+    agent = build_dqn_agent(
+        lambda x: x, args.data_dir, gpu=args.gpu, model=q_local_net, action_size=action_size, skip_num=skip_num
+    )
 
     # train
     pf_runner = PfRunner(args, run_config, env)

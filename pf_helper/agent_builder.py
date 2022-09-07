@@ -7,7 +7,7 @@ from pfrl import agents, explorers, replay_buffers
 from util import global_util
 
 
-def build_dqn_agent(phi, config_dir: str, gpu: int, model: torch.nn.Module, action_size):
+def build_dqn_agent(phi, config_dir: str, gpu: int, model: torch.nn.Module, action_size, skip_num):
     agent_name = "dqn"
     agent_config = global_util.load_yaml(os.path.join(config_dir, "agent_config.yml"))
 
@@ -43,7 +43,7 @@ def build_dqn_agent(phi, config_dir: str, gpu: int, model: torch.nn.Module, acti
         minibatch_size=agent_config["minibatch_size"],
         replay_start_size=agent_config["replay_start_size"],
         target_update_interval=agent_config["target_update_interval"],
-        update_interval=agent_config["update_interval"],
+        update_interval=skip_num,
         target_update_method=agent_config["target_update_method"],
         phi=phi,
         gpu=gpu,
