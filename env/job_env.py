@@ -32,6 +32,7 @@ class JobEnv(gym.Env):
         self.action_space = gym.spaces.Discrete(18)
         self.action_choices = action_space_builder.build_action_choices(instance.processing_time)
 
+        self.u_t = None
         self.make_span = None
         self.machine_finish_time = None
         # 用于记录
@@ -49,6 +50,7 @@ class JobEnv(gym.Env):
         self.history_make_span = []
 
     def reset(self, **kwargs) -> Union[ObsType, Tuple[ObsType, dict]]:
+        self.u_t = 0
         self.make_span = 0
         self.machine_finish_time = np.zeros(self.machine_size, dtype=np.int32)
         # 用于记录
@@ -89,7 +91,7 @@ class JobEnv(gym.Env):
         self.update_machine_finish_time(i, j)
 
         obs = self.get_obs(process_time_channel, schedule_finish_channel, machine_utilization_channel)
-        reward = self.compute_reward(machine_utilization_channel)
+        reward = self.compute_reward()
         done = np.sum(process_time_channel) == 0
         self.set_data_for_visualization(
             process_time_channel, schedule_finish_channel, machine_utilization_channel, i, j
@@ -110,10 +112,11 @@ class JobEnv(gym.Env):
         self.last_schedule_finish_channel = schedule_finish_channel
         return obs
 
-    def compute_reward(self, machine_utilization_channel):
-        inds = np.argwhere(machine_utilization_channel != 0)
-        d2 = machine_utilization_channel[inds[:, 0], inds[:, 1]]
-        return float(np.mean(d2))
+    def compute_reward(self):
+        u_t = self.total_working_time / (self.machine_size * self.make_span)
+        reward = u_t - self.u_t
+        self.u_t = u_t
+        return reward
 
     def compute_schedule_finish_channel(self, i, j):
         schedule_finish_channel = copy.deepcopy(self.last_schedule_finish_channel)
