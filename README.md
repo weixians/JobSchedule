@@ -1,6 +1,20 @@
 # JobSchedule
 Implementation of paper "Research on Adaptive Job Shop Scheduling Problems Based on Dueling Double DQN" (论文复现)
 
+# 运行
+1. 依赖安装
+```shell
+pip3 install -r requirements.txt
+```
+2. 训练
+```shell
+python3 run_ddqn.py --output=../output_jobshop --dueling 
+```
+3. 测试
+```shell
+python3 run_ddqn.py --output=../output_jobshop --dueling --test
+```
+
 # 论文中一些解释含糊地方的个人解释
 ## Observation 
 该observation由3个channel组成, 包含: Processing time, Scheduling finish, 和 Machine Utilization. 

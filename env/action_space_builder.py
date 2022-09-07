@@ -422,15 +422,3 @@ if __name__ == "__main__":
     assert i == 1 and j == 0
     i, j = rule.lpt_divide_twkr(process_time_table)
     assert i == 0 and j == 0
-    i, j = rule.srm(process_time_table)
-    assert i == 0 and j == 0
-    i, j = rule.lrm(process_time_table)
-    assert i == 0 and j == 0
-    i, j = rule.srpt(process_time_table)
-    assert i == 0 and j == 0
-    i, j = rule.lrpt(process_time_table)
-    assert i == 0 and j == 0
-    i, j = rule.sso(process_time_table)
-    assert i == 0 and j == 0
-    i, j = rule.lso(process_time_table)
-    assert i == 0 and j == 0
