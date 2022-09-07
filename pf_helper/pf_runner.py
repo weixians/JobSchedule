@@ -49,6 +49,8 @@ class PfRunner:
                     self.env.render()
                 if done:
                     break
+            if not self.args.render:
+                self.env.render()
 
             statistics = agent.get_statistics()
             self.add_scalar(phase + "/episode_reward", R, i)

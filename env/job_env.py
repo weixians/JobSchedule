@@ -135,13 +135,6 @@ class JobEnv(gym.Env):
 
         return schedule_finish_channel
 
-    def update_machine_finish_time(self, i, j):
-        """
-        计算机器完成某个operation后的时刻
-        """
-        if j == 0:
-            self.machine_finish_time[self.job_machine_nos[i, j]] += self.initial_process_time_channel[i, j]
-
     def normalize_process_time_channel(self, process_time_channel):
         return process_time_channel / self.max_process_time
 
@@ -218,7 +211,7 @@ class JobEnv(gym.Env):
             os.path.join(folder, "e_{}_step_{}.png".format(self.episode_count, self.step_count)),
             bbox_inches="tight",
             pad_inches=0.5,
-            dpi=500,
+            dpi=400,
         )
         # plt.pause(0.4)
         plt.clf()
