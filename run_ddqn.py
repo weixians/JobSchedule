@@ -3,7 +3,8 @@ import os
 import shutil
 
 from env.job_env import JobEnv
-from model import Net2
+from model.cnn_model import Net2
+from model.mlp_model import NetMLP
 from pf_helper.agent_builder import build_dqn_agent
 from pf_helper.pf_runner import PfRunner
 from util import global_util
@@ -49,20 +50,29 @@ def parse_args():
     parser.add_argument("--gpu", type=int, default=-1, help="gpu id to use. If less than 0, use cpu instead.")
     parser.add_argument("--render", default=False, action="store_true", help="whether in the gui mode")
     parser.add_argument("--model_dir", type=str, default="model", help="folder path to save/load neural network models")
+    parser.add_argument("--net", type=str, default="net2", help="network name")
 
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
+    args.output = os.path.join(args.output, args.net)
+
     global_util.setup_logger()
     copy_data_folder_to_output(args, True)
     run_config = global_util.load_yaml(os.path.join(args.output, "data/run_config.yml"))
     instance_dict = load_instances(os.path.join(args.output, "data/jobshop1.txt"))
 
     env = JobEnv(args, instance_dict[run_config["instance"]])
+    input_dim = env.observation_space.shape
     action_size = env.action_space.n
-    q_local_net = Net2(action_size)
+
+    if args.net == "net2":
+        q_local_net = Net2(action_size)
+    else:
+        q_local_net = NetMLP(input_dim, action_size)
+
     agent = build_dqn_agent(lambda x: x, args.data_dir, gpu=args.gpu, model=q_local_net, action_size=action_size)
 
     # train
