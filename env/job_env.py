@@ -153,11 +153,12 @@ class JobEnv(gym.Env):
 
     def compute_machine_utilization(self, process_time_channel):
         # 计算该operation在该机器中所用时间占比
-        machine_running_time_table = self.initial_process_time_channel - process_time_channel
-        machine_finish_time_table = self.machine_finish_time_arr[self.job_machine_nos[:, :]]
-        # avoid nan error
-        machine_finish_time_table[machine_finish_time_table == 0] = 1
-        return machine_running_time_table / machine_finish_time_table
+        job_inds = np.argwhere(process_time_channel == 0)
+        machine_finish_time_table = np.zeros_like(process_time_channel)
+        machine_finish_time_table[job_inds[:, 0], job_inds[:, 1]] = self.machine_finish_time_arr[
+            self.job_machine_nos[job_inds[:, 0], job_inds[:, 1]]
+        ]
+        return machine_finish_time_table / self.make_span
 
     def set_data_for_visualization(
         self, process_time_channel, schedule_finish_channel, machine_utilization_channel, i, j
