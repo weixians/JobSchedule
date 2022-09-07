@@ -8,7 +8,6 @@ from util import global_util
 
 
 def build_dqn_agent(phi, config_dir: str, gpu: int, model: torch.nn.Module, action_size, skip_num):
-    agent_name = "dqn"
     agent_config = global_util.load_yaml(os.path.join(config_dir, "agent_config.yml"))
 
     explorer = explorers.LinearDecayEpsilonGreedy(

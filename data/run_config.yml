@@ -5,3 +5,6 @@ train:
 val:
   frequency: 100
   episodes: 10
+
+
+skip_ratio: 0.02

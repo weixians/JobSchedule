@@ -57,6 +57,7 @@ class PfRunner:
             self.add_scalar(phase + "/makespan", self.env.make_span, i)
             self.add_scalar(phase + "/average_q", statistics[0][1], i)
             self.add_scalar(phase + "/loss", statistics[1][1], i)
+            self.add_scalar(phase + "/epsilon", agent.explorer.epsilon, i)
 
             if i % 10 == 0:
                 logging.info("episode: {}, episode reward: {}, info: {}.".format(i, R, info))

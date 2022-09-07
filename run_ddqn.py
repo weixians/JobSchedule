@@ -72,7 +72,7 @@ if __name__ == "__main__":
     run_config = global_util.load_yaml(os.path.join(args.output, "data/run_config.yml"))
     instance_dict = load_instances(os.path.join(args.output, "data/jobshop1.txt"))
     instance = instance_dict[run_config["instance"]]
-    skip_num = max(1, int(0.02 * instance.job_size * instance.machine_size))
+    skip_num = max(1, int(run_config["skip_ratio"] * instance.job_size * instance.machine_size))
 
     env = JobEnv(args, instance)
     input_dim = env.observation_space.shape
