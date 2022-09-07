@@ -1,4 +1,4 @@
-gamma: 1.0
+gamma: 0.99
 tau: 0.01
 minibatch_size: 256
 replay_start_size: 1000
