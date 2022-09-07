@@ -34,7 +34,7 @@ class JobEnv(gym.Env):
 
         self.u_t = None
         self.make_span = None
-        self.machine_finish_time = None
+        self.machine_finish_time_arr = None
         # 用于记录
         self.episode_count = 0
         self.step_count = 0
@@ -52,7 +52,7 @@ class JobEnv(gym.Env):
     def reset(self, **kwargs) -> Union[ObsType, Tuple[ObsType, dict]]:
         self.u_t = 0
         self.make_span = 0
-        self.machine_finish_time = np.zeros(self.machine_size, dtype=np.int32)
+        self.machine_finish_time_arr = np.zeros(self.machine_size, dtype=np.int32)
         # 用于记录
         self.episode_count = kwargs.get("episode") if "episode" in kwargs else 0
         self.phase = kwargs.get("phase") if "phase" in kwargs else "train"
@@ -79,7 +79,12 @@ class JobEnv(gym.Env):
         # logging.info("动作选择: {}".format(action))
         self.step_count += 1
         rule = self.action_choices[action]
-        i, j = rule(self.last_process_time_channel)
+        i, j = rule(
+            self.last_process_time_channel,
+            make_span=self.make_span,
+            machine_nos=self.job_machine_nos,
+            machine_times=self.machine_finish_time_arr,
+        )
         self.history_i_j.append([i, j])
 
         process_time_channel = copy.deepcopy(self.last_process_time_channel)
@@ -120,17 +125,17 @@ class JobEnv(gym.Env):
         if j == 0:
             # 处于某个job第一个operation位置，只需要关注机器时间
             schedule_finish_channel[i, j] = (
-                self.initial_process_time_channel[i, j] + self.machine_finish_time[self.job_machine_nos[i, j]]
+                self.initial_process_time_channel[i, j] + self.machine_finish_time_arr[self.job_machine_nos[i, j]]
             )
         else:
             # 对比上一个操作完成时间和对应机器时间，取大的
             schedule_finish_channel[i, j] = self.initial_process_time_channel[i, j] + max(
-                self.machine_finish_time[self.job_machine_nos[i, j]], schedule_finish_channel[i, j - 1]
+                self.machine_finish_time_arr[self.job_machine_nos[i, j]], schedule_finish_channel[i, j - 1]
             )
         # 更新机器完成时间(某个作业在该机器上的完成时间即为该机器到目前位置的完成时间)
-        self.machine_finish_time[self.job_machine_nos[i, j]] = schedule_finish_channel[i, j]
+        self.machine_finish_time_arr[self.job_machine_nos[i, j]] = schedule_finish_channel[i, j]
         # 更新机器完成周期
-        self.make_span = np.max(self.machine_finish_time)
+        self.make_span = np.max(self.machine_finish_time_arr)
         self.history_make_span.append(self.make_span)
 
         return schedule_finish_channel
@@ -183,7 +188,7 @@ class JobEnv(gym.Env):
         colors = ["#ffffff" for i in range(self.machine_size)]
         colors[self.job_machine_nos[self.i, self.j]] = "#ff0521"
         ax13.set_title("machine finish time")
-        ax13.table(cellText=[self.machine_finish_time], loc="center", cellColours=[colors])
+        ax13.table(cellText=[self.machine_finish_time_arr], loc="center", cellColours=[colors])
         ax13.axis("off")
 
         ax14 = fig.add_subplot(2, 4, 4)
