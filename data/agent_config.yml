@@ -4,7 +4,7 @@ minibatch_size: 256
 replay_start_size: 1000
 update_interval: 1
 # target_update_interval(step)
-target_update_interval: 200
+target_update_interval: 20
 target_update_method: soft
 
 # optimizer
