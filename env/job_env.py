@@ -89,8 +89,8 @@ class JobEnv(gym.Env):
         self.update_machine_finish_time(i, j)
 
         obs = self.get_obs(process_time_channel, schedule_finish_channel, machine_utilization_channel)
+        reward = self.compute_reward(machine_utilization_channel)
         done = np.sum(process_time_channel) == 0
-        reward = self.compute_reward() if done else 0
         self.set_data_for_visualization(
             process_time_channel, schedule_finish_channel, machine_utilization_channel, i, j
         )
@@ -110,8 +110,10 @@ class JobEnv(gym.Env):
         self.last_schedule_finish_channel = schedule_finish_channel
         return obs
 
-    def compute_reward(self):
-        return self.total_working_time / (self.machine_size * self.make_span)
+    def compute_reward(self, machine_utilization_channel):
+        inds = np.argwhere(machine_utilization_channel != 0)
+        d2 = machine_utilization_channel[inds[:, 0], inds[:, 1]]
+        return float(np.mean(d2))
 
     def compute_schedule_finish_channel(self, i, j):
         schedule_finish_channel = copy.deepcopy(self.last_schedule_finish_channel)
