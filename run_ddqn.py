@@ -42,9 +42,9 @@ def copy_data_folder_to_output(args, override=False):
     args.data_dir = os.path.join(args.output, "data")
 
 
-def build_network(args):
+def build_network(args, action_size):
     if args.net == "net2":
-        q_local_net = Net2(action_size)
+        q_local_net = Net2(action_size, args.dueling)
     else:
         q_local_net = NetMLP(input_dim, action_size)
     return q_local_net
@@ -52,20 +52,23 @@ def build_network(args):
 
 def parse_args():
     parser = argparse.ArgumentParser("Parse configuration")
-    parser.add_argument("--output", type=str, default="../output_jobshop", help="root path of output dir")
+    parser.add_argument("--output", type=str, default="output_jobshop", help="root path of output dir")
     parser.add_argument("--seed", type=int, default=42, help="seed of the random")
     parser.add_argument("--test", default=False, action="store_true", help="whether in test mode")
     parser.add_argument("--gpu", type=int, default=-1, help="gpu id to use. If less than 0, use cpu instead.")
     parser.add_argument("--render", default=False, action="store_true", help="whether in the gui mode")
     parser.add_argument("--model_dir", type=str, default="model", help="folder path to save/load neural network models")
     parser.add_argument("--net", type=str, default="net2", help="network name")
+    parser.add_argument(
+        "--dueling", default=False, action="store_true", help="whether to use dueling ddqn (use ddqn if false)"
+    )
 
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    args.output = os.path.join(args.output, args.net)
+    args.output = os.path.join(args.output, "{}_{}".format(args.net, "dueling") if args.dueling else args.net)
 
     global_util.setup_logger()
     copy_data_folder_to_output(args, True)
@@ -77,7 +80,7 @@ if __name__ == "__main__":
     env = JobEnv(args, instance)
     input_dim = env.observation_space.shape
     action_size = env.action_space.n
-    q_local_net = build_network(args)
+    q_local_net = build_network(args, action_size)
     agent = build_dqn_agent(
         lambda x: x, args.data_dir, gpu=args.gpu, model=q_local_net, action_size=action_size, skip_num=skip_num
     )

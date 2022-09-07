@@ -1,4 +1,4 @@
-gamma: 0.99
+gamma: 1.0
 tau: 0.01
 minibatch_size: 256
 replay_start_size: 1000
@@ -16,7 +16,7 @@ adam:
 explorer:
   start_epsilon: 0.9
   end_epsilon: 0.1
-  decay_steps: 100000
+  decay_steps: 50000
 # replay buffer
 prioritized_replay_buffer:
   capacity: 100000
