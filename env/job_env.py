@@ -32,7 +32,7 @@ class JobEnv(gym.Env):
         self.action_choices = None
 
         self.u_t = None
-        self.make_span = None
+        self.make_span = 0
         self.machine_finish_time_arr = None
         # 用于记录
         self.episode_count = 0
@@ -41,6 +41,7 @@ class JobEnv(gym.Env):
         # 用于记录绘图
         self.cell_colors = None
         self.history_i_j = None
+        self.history_machine_finish_time_arr = []
         self.history_make_span = []
         self.history_process_time_channel = []
         self.history_schedule_finish_channel = []
@@ -63,9 +64,14 @@ class JobEnv(gym.Env):
         self.episode_count = kwargs.get("episode") if "episode" in kwargs else 0
         self.phase = kwargs.get("phase") if "phase" in kwargs else "train"
         self.step_count = 0
-        self.history_i_j = []
-        self.history_make_span = [0]
+        # 用于记录绘图
         self.cell_colors = self.build_cell_colors()
+        self.history_i_j = []
+        self.history_machine_finish_time_arr = []
+        self.history_make_span = []
+        self.history_process_time_channel = []
+        self.history_schedule_finish_channel = []
+        self.history_machine_utilization_channel = []
 
     def reset(self, **kwargs) -> Union[ObsType, Tuple[ObsType, dict]]:
         self.init_data(**kwargs)
@@ -77,7 +83,7 @@ class JobEnv(gym.Env):
         machine_utilization_channel = np.zeros_like(process_time_channel)
         obs = self.get_obs(process_time_channel, schedule_finish_channel, machine_utilization_channel)
         self.add_data_for_visualization(
-            process_time_channel, schedule_finish_channel, machine_utilization_channel, 0, 0
+            process_time_channel, schedule_finish_channel, machine_utilization_channel, None, None
         )
         return obs
 
@@ -145,7 +151,6 @@ class JobEnv(gym.Env):
         self.machine_finish_time_arr[self.job_machine_nos[i, j]] = schedule_finish_channel[i, j]
         # 更新机器完成周期
         self.make_span = np.max(self.machine_finish_time_arr)
-        self.history_make_span.append(self.make_span)
 
         return schedule_finish_channel
 
@@ -172,6 +177,8 @@ class JobEnv(gym.Env):
     ):
         if not self.args.render:
             return
+        self.history_machine_finish_time_arr.append(copy.deepcopy(self.machine_finish_time_arr))
+        self.history_make_span.append(self.make_span)
         self.history_process_time_channel.append(copy.deepcopy(process_time_channel))
         self.history_schedule_finish_channel.append(copy.deepcopy(schedule_finish_channel))
         self.history_machine_utilization_channel.append(
@@ -198,8 +205,8 @@ class JobEnv(gym.Env):
             colors = ["#ffffff" for _ in range(self.machine_size)]
             if i is not None and j is not None:
                 cell_colors[i][j] = "#ff0521"
-                if len(self.history_i_j) > 1:
-                    cell_colors[self.history_i_j[-2][0]][self.history_i_j[-2][1]] = "#B4EEB4"
+                if frame_ind > 1:
+                    cell_colors[self.history_i_j[frame_ind - 1][0]][self.history_i_j[frame_ind - 1][1]] = "#B4EEB4"
                 colors[self.job_machine_nos[i, j]] = "#ff0521"
             ax11 = fig.add_subplot(2, 4, 1)
             ax11.set_title("Operation time")
@@ -214,12 +221,12 @@ class JobEnv(gym.Env):
             ax13 = fig.add_subplot(2, 4, 3)
 
             ax13.set_title("machine finish time")
-            ax13.table(cellText=[self.machine_finish_time_arr], loc="center", cellColours=[colors])
+            ax13.table(cellText=[self.history_machine_finish_time_arr[frame_ind]], loc="center", cellColours=[colors])
             ax13.axis("off")
 
             ax14 = fig.add_subplot(2, 4, 4)
             ax14.set_title("make span")
-            ax14.plot(range(len(self.history_make_span)), self.history_make_span)
+            ax14.plot(range(frame_ind + 1), self.history_make_span[: frame_ind + 1])
 
             ax21 = fig.add_subplot(2, 4, 5)
             ax21.set_title("processing time")
@@ -239,12 +246,12 @@ class JobEnv(gym.Env):
             ax23.axis("off")
             if mode == "img":
                 plt.savefig(
-                    os.path.join(folder, "e_{}_step_{}.png".format(self.episode_count, self.step_count)),
+                    os.path.join(folder, "e_{}_step_{}.png".format(self.episode_count, frame_ind)),
                     bbox_inches="tight",
                     pad_inches=0.5,
                     dpi=400,
                 )
-                # plt.clf()
+                plt.clf()
 
         if mode == "img":
             for ind in range(len(self.history_i_j)):
@@ -253,14 +260,16 @@ class JobEnv(gym.Env):
         elif mode == "video":
             out_path = os.path.join(folder, "e_{}.mp4".format(self.episode_count))
             plt.rcParams["animation.ffmpeg_path"] = self.args.ffmpeg
-            anim = animation.FuncAnimation(fig, update, frames=len(self.history_i_j), interval=3 * 1000)
+            anim = animation.FuncAnimation(
+                fig, update, frames=len(self.history_i_j), interval=len(self.history_i_j) * 2000
+            )
             anim.running = True
-            # ffmpeg_writer = animation.writers["ffmpeg"]
-            # writer = ffmpeg_writer(fps=30, metadata=dict(artist="Me"), bitrate=1800)
-            writer = animation.FFMpegWriter(fps=10, extra_args=["-vcodec", "libx264"])
+            ffmpeg_writer = animation.writers["ffmpeg"]
+            writer = ffmpeg_writer(fps=10, metadata=dict(artist="Me"), bitrate=1800)
+            # writer = animation.FFMpegWriter(fps=10, extra_args=["-vcodec", "libx264"])
             anim.save(out_path, writer=writer)
-            writer.finish()
-            plt.show()
+            # writer.finish()
+            # plt.show()
 
     def build_cell_colors(self):
         cell_colors = []
