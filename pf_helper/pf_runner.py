@@ -48,12 +48,10 @@ class PfRunner:
                 R += reward
                 t += 1
                 agent.observe(obs, reward, done, False)
-                if self.args.render:
-                    self.env.render()
                 if done:
                     break
-            # if not self.args.render:
-            #     self.env.render()
+            if not self.args.render:
+                self.env.render()
 
             statistics = agent.get_statistics()
             self.add_scalar(phase + "/episode_reward", R, i)
@@ -93,10 +91,10 @@ class PfRunner:
                     obs, reward, done, info = self.env.step(action)
                     R += reward
                     t += 1
-                    if self.args.render:
-                        self.env.render()
                     if done:
                         break
+                if self.args.render:
+                    self.env.render()
                 # plt.ioff()
                 # plt.show()
 

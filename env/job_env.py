@@ -6,6 +6,9 @@ from typing import Union, Tuple
 import gym
 import numpy as np
 from gym.core import ActType, ObsType
+from matplotlib import animation
+from matplotlib.animation import FFMpegWriter
+
 from env import action_space_builder
 
 import matplotlib.pyplot as plt
@@ -35,15 +38,13 @@ class JobEnv(gym.Env):
         self.episode_count = 0
         self.step_count = 0
         self.phase = None
-        # 用于实时绘图
-        self.process_time_channel = None
-        self.schedule_finish_channel = None
-        self.machine_utilization_channel = None
-        self.i = None
-        self.j = None
+        # 用于记录绘图
         self.cell_colors = None
         self.history_i_j = None
         self.history_make_span = []
+        self.history_process_time_channel = []
+        self.history_schedule_finish_channel = []
+        self.history_machine_utilization_channel = []
 
     def init_data(self, **kwargs):
         self.instance = kwargs.get("instance")
@@ -75,8 +76,8 @@ class JobEnv(gym.Env):
         # 机器利用率
         machine_utilization_channel = np.zeros_like(process_time_channel)
         obs = self.get_obs(process_time_channel, schedule_finish_channel, machine_utilization_channel)
-        self.set_data_for_visualization(
-            process_time_channel, schedule_finish_channel, machine_utilization_channel, None, None
+        self.add_data_for_visualization(
+            process_time_channel, schedule_finish_channel, machine_utilization_channel, 0, 0
         )
         return obs
 
@@ -92,7 +93,6 @@ class JobEnv(gym.Env):
             machine_nos=self.job_machine_nos,
             machine_times=self.machine_finish_time_arr,
         )
-        self.history_i_j.append([i, j])
 
         process_time_channel = copy.deepcopy(self.last_process_time_channel)
         process_time_channel[i, j] = 0
@@ -102,7 +102,7 @@ class JobEnv(gym.Env):
         obs = self.get_obs(process_time_channel, schedule_finish_channel, machine_utilization_channel)
         reward = self.compute_reward(process_time_channel)
         done = np.sum(process_time_channel) == 0
-        self.set_data_for_visualization(
+        self.add_data_for_visualization(
             process_time_channel, schedule_finish_channel, machine_utilization_channel, i, j
         )
         return obs, reward, done, {}
@@ -167,74 +167,100 @@ class JobEnv(gym.Env):
         ]
         return machine_finish_time_table / self.make_span
 
-    def set_data_for_visualization(
+    def add_data_for_visualization(
         self, process_time_channel, schedule_finish_channel, machine_utilization_channel, i, j
     ):
-        self.process_time_channel = process_time_channel
-        self.schedule_finish_channel = schedule_finish_channel
-        self.machine_utilization_channel = np.around(machine_utilization_channel, decimals=2)
-        self.i = i
-        self.j = j
+        if not self.args.render:
+            return
+        self.history_process_time_channel.append(copy.deepcopy(process_time_channel))
+        self.history_schedule_finish_channel.append(copy.deepcopy(schedule_finish_channel))
+        self.history_machine_utilization_channel.append(
+            np.around(copy.deepcopy(machine_utilization_channel), decimals=2)
+        )
+        self.history_i_j.append([i, j])
 
-    def render(self, mode="human"):
-        plt.clf()
-        fig = plt.figure(figsize=(16, 8))
-        # plt.rcParams["font.sans-serif"] = ["SimHei"]  # 设置字体
-        # plt.rcParams["axes.unicode_minus"] = False  # 该语句解决图像中的“-”负号的乱码问题
-        # plt.rcParams["figure.figsize"] = (20, 3)
-        cell_colors = self.cell_colors
-        if self.i is not None and self.j is not None:
-            cell_colors[self.i][self.j] = "#ff0521"
-            if len(self.history_i_j) > 1:
-                cell_colors[self.history_i_j[-2][0]][self.history_i_j[-2][1]] = "#B4EEB4"
-
-        ax11 = fig.add_subplot(2, 4, 1)
-        ax11.set_title("Operation time")
-        ax11.table(cellText=self.initial_process_time_channel, loc="center", cellColours=cell_colors)
-        ax11.axis("off")
-
-        ax12 = fig.add_subplot(2, 4, 2)
-        ax12.set_title("machine number")
-        ax12.table(cellText=self.job_machine_nos, loc="center", cellColours=cell_colors)
-        ax12.axis("off")
-
-        ax13 = fig.add_subplot(2, 4, 3)
-        colors = ["#ffffff" for i in range(self.machine_size)]
-        colors[self.job_machine_nos[self.i, self.j]] = "#ff0521"
-        ax13.set_title("machine finish time")
-        ax13.table(cellText=[self.machine_finish_time_arr], loc="center", cellColours=[colors])
-        ax13.axis("off")
-
-        ax14 = fig.add_subplot(2, 4, 4)
-        ax14.set_title("make span")
-        ax14.plot(range(len(self.history_make_span)), self.history_make_span)
-
-        ax21 = fig.add_subplot(2, 4, 5)
-        ax21.set_title("processing time")
-        ax21.table(cellText=self.process_time_channel, loc="center", cellColours=cell_colors)
-        ax21.axis("off")
-
-        ax22 = fig.add_subplot(2, 4, 6)
-        ax22.set_title("schedule finish")
-        ax22.table(cellText=self.schedule_finish_channel, loc="center", cellColours=cell_colors)
-        ax22.axis("off")
-
-        ax23 = fig.add_subplot(2, 4, 7)
-        ax23.set_title("machine utilization")
-        ax23.table(cellText=self.machine_utilization_channel, loc="center", cellColours=cell_colors)
-        ax23.axis("off")
-
+    def render(self, mode=None):
+        if mode is None:
+            mode = self.args.mode
         folder = os.path.join(self.args.output, "render")
         os.makedirs(folder, exist_ok=True)
-        plt.savefig(
-            os.path.join(folder, "e_{}_step_{}.png".format(self.episode_count, self.step_count)),
-            bbox_inches="tight",
-            pad_inches=0.5,
-            dpi=400,
-        )
-        # plt.pause(0.4)
+
         plt.clf()
-        plt.close()
+        fig = plt.figure(figsize=(16, 8))
+        plt.rcParams["font.sans-serif"] = ["SimHei"]  # 设置字体
+        plt.rcParams["axes.unicode_minus"] = False  # 该语句解决图像中的“-”负号的乱码问题
+
+        cell_colors = self.cell_colors
+
+        def update(frame_ind):
+            i, j = self.history_i_j[frame_ind]
+            # for _, (i, j) in enumerate(self.history_i_j):
+            colors = ["#ffffff" for _ in range(self.machine_size)]
+            if i is not None and j is not None:
+                cell_colors[i][j] = "#ff0521"
+                if len(self.history_i_j) > 1:
+                    cell_colors[self.history_i_j[-2][0]][self.history_i_j[-2][1]] = "#B4EEB4"
+                colors[self.job_machine_nos[i, j]] = "#ff0521"
+            ax11 = fig.add_subplot(2, 4, 1)
+            ax11.set_title("Operation time")
+            ax11.table(cellText=self.initial_process_time_channel, loc="center", cellColours=cell_colors)
+            ax11.axis("off")
+
+            ax12 = fig.add_subplot(2, 4, 2)
+            ax12.set_title("machine number")
+            ax12.table(cellText=self.job_machine_nos, loc="center", cellColours=cell_colors)
+            ax12.axis("off")
+
+            ax13 = fig.add_subplot(2, 4, 3)
+
+            ax13.set_title("machine finish time")
+            ax13.table(cellText=[self.machine_finish_time_arr], loc="center", cellColours=[colors])
+            ax13.axis("off")
+
+            ax14 = fig.add_subplot(2, 4, 4)
+            ax14.set_title("make span")
+            ax14.plot(range(len(self.history_make_span)), self.history_make_span)
+
+            ax21 = fig.add_subplot(2, 4, 5)
+            ax21.set_title("processing time")
+            ax21.table(cellText=self.history_process_time_channel[frame_ind], loc="center", cellColours=cell_colors)
+            ax21.axis("off")
+
+            ax22 = fig.add_subplot(2, 4, 6)
+            ax22.set_title("schedule finish")
+            ax22.table(cellText=self.history_schedule_finish_channel[frame_ind], loc="center", cellColours=cell_colors)
+            ax22.axis("off")
+
+            ax23 = fig.add_subplot(2, 4, 7)
+            ax23.set_title("machine utilization")
+            ax23.table(
+                cellText=self.history_machine_utilization_channel[frame_ind], loc="center", cellColours=cell_colors
+            )
+            ax23.axis("off")
+            if mode == "img":
+                plt.savefig(
+                    os.path.join(folder, "e_{}_step_{}.png".format(self.episode_count, self.step_count)),
+                    bbox_inches="tight",
+                    pad_inches=0.5,
+                    dpi=400,
+                )
+                # plt.clf()
+
+        if mode == "img":
+            for ind in range(len(self.history_i_j)):
+                update(ind)
+            plt.close()
+        elif mode == "video":
+            out_path = os.path.join(folder, "e_{}.mp4".format(self.episode_count))
+            plt.rcParams["animation.ffmpeg_path"] = self.args.ffmpeg
+            anim = animation.FuncAnimation(fig, update, frames=len(self.history_i_j), interval=3 * 1000)
+            anim.running = True
+            # ffmpeg_writer = animation.writers["ffmpeg"]
+            # writer = ffmpeg_writer(fps=30, metadata=dict(artist="Me"), bitrate=1800)
+            writer = animation.FFMpegWriter(fps=10, extra_args=["-vcodec", "libx264"])
+            anim.save(out_path, writer=writer)
+            writer.finish()
+            plt.show()
 
     def build_cell_colors(self):
         cell_colors = []
