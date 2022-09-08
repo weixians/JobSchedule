@@ -1,8 +1,9 @@
 import json
 import logging
 import os
+import random
 from queue import Queue
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -10,12 +11,14 @@ from tqdm import tqdm
 from tensorboardX import SummaryWriter
 
 from env.job_env import JobEnv
+from util.file_loader import Instance
 
 
 class PfRunner:
-    def __init__(self, args, run_config: Dict, env):
+    def __init__(self, args, run_config: Dict, env, instances: List[Instance]):
         self.args = args
         self.run_config = run_config
+        self.instances = instances
 
         self.val_frequency = run_config["val"]["frequency"]
         self.render: JobEnv = args.render
@@ -36,7 +39,7 @@ class PfRunner:
         shortest_make_span = np.inf
         for i in range(1, self.run_config["train"]["episodes"] + 1):
             phase = "train"
-            obs = self.env.reset(episode=i, phase=phase)
+            obs = self.env.reset(episode=i, phase=phase, instance=random.choice(self.instances))
             R = 0  # return (sum of rewards)
             t = 0  # time step
             while True:
@@ -88,7 +91,6 @@ class PfRunner:
                     obs, reward, done, info = self.env.step(action)
                     R += reward
                     t += 1
-                    agent.observe(obs, reward, done, False)
                     if self.args.render:
                         self.env.render()
                     if done:

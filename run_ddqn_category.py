@@ -77,6 +77,11 @@ if __name__ == "__main__":
     instance = instance_dict[run_config["instance"]]
     skip_num = max(1, int(run_config["skip_ratio"] * instance.job_size * instance.machine_size))
 
+    instances = []
+    for key, value in instance_dict.items():
+        if value.machine_size == instance.machine_size and value.job_size == instance.job_size:
+            instances.append(value)
+
     env = JobEnv(args, instance.job_size, instance.machine_size)
     input_dim = env.observation_space.shape
     action_size = env.action_space.n
@@ -86,7 +91,7 @@ if __name__ == "__main__":
     )
 
     # train
-    pf_runner = PfRunner(args, run_config, env, [instance])
+    pf_runner = PfRunner(args, run_config, env, instances)
     if args.test:
         pf_runner.validate(agent, start_i=1, phase="test")
     else:

@@ -8,29 +8,25 @@ import numpy as np
 from gym.core import ActType, ObsType
 from env import action_space_builder
 
-from util.file_loader import Instance
 import matplotlib.pyplot as plt
 
 
 class JobEnv(gym.Env):
-    def __init__(self, args, instance: Instance):
+    def __init__(self, args, job_size, machine_size):
         self.args = args
-        self.instance = instance
-
-        self.job_size = instance.job_size
-        self.machine_size = instance.machine_size
-        self.job_machine_nos = instance.machine_nos
-        self.initial_process_time_channel = self.instance.processing_time
-        self.max_process_time = np.max(instance.processing_time)
-        self.total_working_time = np.sum(instance.processing_time)
+        self.instance = None
+        self.job_size = None
+        self.machine_size = None
+        self.job_machine_nos = None
+        self.initial_process_time_channel = None
+        self.max_process_time = None
 
         self.last_process_time_channel = None
         self.last_schedule_finish_channel = None
 
-        obs = self.reset()
-        self.observation_space = gym.spaces.Box(low=0, high=1, shape=obs.shape)
+        self.observation_space = gym.spaces.Box(low=0, high=1, shape=(3, job_size, machine_size))
         self.action_space = gym.spaces.Discrete(18)
-        self.action_choices = action_space_builder.build_action_choices(instance.processing_time)
+        self.action_choices = None
 
         self.u_t = None
         self.make_span = None
@@ -49,7 +45,16 @@ class JobEnv(gym.Env):
         self.history_i_j = None
         self.history_make_span = []
 
-    def reset(self, **kwargs) -> Union[ObsType, Tuple[ObsType, dict]]:
+    def init_data(self, **kwargs):
+        self.instance = kwargs.get("instance")
+        self.job_size = self.instance.job_size
+        self.machine_size = self.instance.machine_size
+        self.job_machine_nos = self.instance.machine_nos
+        self.initial_process_time_channel = self.instance.processing_time
+        self.max_process_time = np.max(self.instance.processing_time)
+
+        self.action_choices = action_space_builder.build_action_choices(self.instance.processing_time)
+
         self.u_t = 0
         self.make_span = 0
         self.machine_finish_time_arr = np.zeros(self.machine_size, dtype=np.int32)
@@ -61,6 +66,8 @@ class JobEnv(gym.Env):
         self.history_make_span = [0]
         self.cell_colors = self.build_cell_colors()
 
+    def reset(self, **kwargs) -> Union[ObsType, Tuple[ObsType, dict]]:
+        self.init_data(**kwargs)
         # 处理时间
         process_time_channel = copy.deepcopy(self.instance.processing_time)
         # 调度完成时
