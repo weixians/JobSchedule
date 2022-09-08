@@ -14,6 +14,10 @@ python3 run_ddqn.py --output=../output_jobshop --dueling
 ```shell
 python3 run_ddqn.py --output=../output_jobshop --dueling --test
 ```
+4. 测试并生成图片
+```shell
+python3 run_ddqn.py --output=../output_jobshop --dueling --test --render --mode=img 
+```
 
 # 论文中一些解释含糊地方的个人解释
 ## Observation 
