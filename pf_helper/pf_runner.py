@@ -6,6 +6,7 @@ from queue import Queue
 from typing import Dict, List
 
 import numpy as np
+import torch
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
@@ -24,12 +25,17 @@ class PfRunner:
         self.render: JobEnv = args.render
         self.env = env
         self.writer = SummaryWriter(logdir=os.path.join(args.output))
+        self.device = (
+            torch.device("cuda:{}".format(args.gpu))
+            if torch.cuda.is_available() and args.gpu >= 0
+            else torch.device("cpu")
+        )
 
         self.model_dir = os.path.join(args.output, args.model_dir)
         # if args.best:
         #     self.model_dir = os.path.join(self.model_dir, "best")
-        # elif args.epi is not None:
-        #     self.model_dir = os.path.join(self.model_dir, "epi_{}".format(args.epi))
+        if args.epi is not None:
+            self.model_dir = os.path.join(self.model_dir, "epi_{}".format(args.epi))
 
     def train(self, agent):
         # if self.args.resume_dir is not None:
@@ -74,6 +80,9 @@ class PfRunner:
                 agent.save(os.path.join(self.model_dir, "epi_{}".format(i)))
 
     def validate(self, agent, start_i=1, phase="val"):
+        if phase == "test":
+            agent.load(self.model_dir, self.device)
+
         n_episodes = len(self.instances)
         count = 0
         total_make_span = 0
@@ -84,8 +93,6 @@ class PfRunner:
                 count += 1
                 R = 0  # return (sum of rewards)
                 t = 0  # time step
-                # if self.args.render:
-                #     plt.ion()
                 while True:
                     action = agent.act(obs)
                     obs, reward, done, info = self.env.step(action)
@@ -95,9 +102,7 @@ class PfRunner:
                         break
                 if self.args.render:
                     self.env.render()
-                # plt.ioff()
-                # plt.show()
-
+                pbar.set_description("makespan={}".format(self.env.make_span))
                 statistics = agent.get_statistics()
                 self.add_scalar(phase + "/episode_reward", R, i)
                 self.add_scalar(phase + "/makespan", self.env.make_span, i)
