@@ -76,12 +76,12 @@ class PfRunner:
                 agent.save(os.path.join(self.model_dir, "epi_{}".format(i)))
 
     def validate(self, agent, start_i=1, phase="val"):
-        n_episodes = self.run_config["val"]["episodes"]
+        n_episodes = len(self.instances)
         total_make_span = 0
         with agent.eval_mode():
             pbar = tqdm(range((start_i - 1) * n_episodes + 1, start_i * n_episodes + 1))
             for i in pbar:
-                obs = self.env.reset(episode=i, phase=phase, instance=random.choice(self.instances))
+                obs = self.env.reset(episode=i, phase=phase, instance=self.instances[i])
                 R = 0  # return (sum of rewards)
                 t = 0  # time step
                 # if self.args.render:
