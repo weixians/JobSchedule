@@ -200,6 +200,7 @@ class JobEnv(gym.Env):
         cell_colors = self.cell_colors
 
         def update(frame_ind):
+            plt.clf()
             i, j = self.history_i_j[frame_ind]
             # for _, (i, j) in enumerate(self.history_i_j):
             colors = ["#ffffff" for _ in range(self.machine_size)]
