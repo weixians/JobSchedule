@@ -3,7 +3,7 @@ instance: la16
 train:
   episodes: 20000
 val:
-  frequency: 200
+  frequency: 100
 
 
 skip_ratio: 0.02
