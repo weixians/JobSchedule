@@ -24,6 +24,10 @@ def parse_args():
     parser.add_argument("--ffmpeg", default=None, type=str, help="path of ffmpeg, needed for video mode")
     # for render end
 
+    parser.add_argument("--n_j", type=int, default=3, help="Number of jobs of instance")
+    parser.add_argument("--n_m", type=int, default=3, help="Number of machines instance")
+    parser.add_argument("--np_seed_validation", type=int, default=200, help="Seed for numpy for validation")
+
     return parser.parse_args()
 
 

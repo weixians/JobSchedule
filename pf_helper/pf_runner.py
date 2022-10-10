@@ -12,6 +12,7 @@ from tqdm import tqdm
 from tensorboardX import SummaryWriter
 
 from env.job_env import JobEnv
+from util import global_util
 from util.file_loader import Instance
 
 
@@ -32,15 +33,16 @@ class PfRunner:
         )
 
         self.model_dir = os.path.join(args.output, args.model_dir)
-        # if args.best:
-        #     self.model_dir = os.path.join(self.model_dir, "best")
         if args.epi is not None:
             self.model_dir = os.path.join(self.model_dir, "epi_{}".format(args.epi))
 
+        self.vali_data = np.load(
+            os.path.join(global_util.get_project_root(), "data", "generatedData{}_{}_Seed{}.npy").format(
+                args.n_j, args.n_m, args.np_seed_validation
+            )
+        )
+
     def train(self, agent):
-        # if self.args.resume_dir is not None:
-        #     logging.info("### Train resumes, loading model from: {}".format(self.args.resume_dir))
-        #     agent.load(self.args.resume_dir, self.args.device)
 
         shortest_make_span = np.inf
         for i in range(1, self.run_config["train"]["episodes"] + 1):
@@ -83,13 +85,14 @@ class PfRunner:
         if phase == "test":
             agent.load(self.model_dir, self.device)
 
-        n_episodes = len(self.instances)
+        n_episodes = len(self.vali_data)
         count = 0
         total_make_span = 0
         with agent.eval_mode():
-            pbar = tqdm(range((start_i - 1) * n_episodes + 1, start_i * n_episodes + 1))
-            for i in pbar:
-                obs = self.env.reset(episode=i, phase=phase, instance=self.instances[count])
+            i = (start_i - 1) * n_episodes
+            for data in self.vali_data:
+                i += 1
+                obs = self.env.reset(data=data)
                 count += 1
                 R = 0  # return (sum of rewards)
                 t = 0  # time step
@@ -102,7 +105,7 @@ class PfRunner:
                         break
                 if self.args.render:
                     self.env.render()
-                pbar.set_description("makespan={}".format(self.env.make_span))
+                logging.info("makespan={}".format(self.env.make_span))
                 statistics = agent.get_statistics()
                 self.add_scalar(phase + "/episode_reward", R, i)
                 self.add_scalar(phase + "/makespan", self.env.make_span, i)
