@@ -4,8 +4,9 @@ from env.job_env import JobEnv
 from pf_helper.agent_builder import build_dqn_agent
 from pf_helper.pf_runner import PfRunner
 from util import global_util
+from util.arg_parser import parse_args
 from util.file_loader import load_instances
-from util.util import parse_args, copy_data_folder_to_output, build_network
+from util.utils import copy_data_folder_to_output, build_network
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
@@ -19,9 +20,9 @@ if __name__ == "__main__":
     run_config = global_util.load_yaml(os.path.join(args.output, "data/run_config.yml"))
     instance_dict = load_instances(os.path.join(args.output, "data/jobshop1.txt"))
     instance = instance_dict[run_config["instance"]]
-    skip_num = max(1, int(run_config["skip_ratio"] * instance.job_size * instance.machine_size))
+    skip_num = max(1, int(run_config["skip_ratio"] * instance.n_j * instance.n_m))
 
-    env = JobEnv(args, instance.job_size, instance.machine_size)
+    env = JobEnv(args, instance.n_j, instance.n_m)
     input_dim = env.observation_space.shape
     action_size = env.action_space.n
     q_local_net = build_network(args, action_size)

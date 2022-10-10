@@ -1,33 +1,30 @@
 import copy
-import logging
 import os
-from typing import Union, Tuple
-
 import gym
 import numpy as np
+import matplotlib.pyplot as plt
+from typing import Union, Tuple
 from gym.core import ActType, ObsType
 from matplotlib import animation
-from matplotlib.animation import FFMpegWriter
-
 from env import action_space_builder
-
-import matplotlib.pyplot as plt
+from util.data_generator import gen_instance_uniformly
 
 
 class JobEnv(gym.Env):
-    def __init__(self, args, job_size, machine_size):
+    def __init__(self, args):
         self.args = args
-        self.instance = None
-        self.job_size = None
-        self.machine_size = None
-        self.job_machine_nos = None
-        self.initial_process_time_channel = None
+        self.n_j = args.n_j
+        self.n_m = args.n_m
+        self.dur_low = args.low
+        self.dur_high = args.high
+        self.task_durations = None
+        self.task_machines = None
         self.max_process_time = None
 
         self.last_process_time_channel = None
         self.last_schedule_finish_channel = None
 
-        self.observation_space = gym.spaces.Box(low=0, high=1, shape=(3, job_size, machine_size))
+        self.observation_space = gym.spaces.Box(low=0, high=1, shape=(3, args.n_j, args.n_m))
         self.action_space = gym.spaces.Discrete(18)
         self.action_choices = None
 
@@ -48,18 +45,19 @@ class JobEnv(gym.Env):
         self.history_machine_utilization_channel = []
 
     def init_data(self, **kwargs):
-        self.instance = kwargs.get("instance")
-        self.job_size = self.instance.job_size
-        self.machine_size = self.instance.machine_size
-        self.job_machine_nos = self.instance.machine_nos
-        self.initial_process_time_channel = self.instance.processing_time
-        self.max_process_time = np.max(self.instance.processing_time)
-
-        self.action_choices = action_space_builder.build_action_choices(self.instance.processing_time)
+        if "data" in kwargs:
+            self.task_durations, self.task_machines = kwargs.get("data")
+        else:
+            # 生成一个新的调度案例
+            self.task_durations, self.task_machines = gen_instance_uniformly(
+                self.n_j, self.n_m, self.dur_low, self.dur_high
+            )
+        self.max_process_time = np.max(self.task_durations)
+        self.action_choices = action_space_builder.build_action_choices(self.task_durations)
 
         self.u_t = 0
         self.make_span = 0
-        self.machine_finish_time_arr = np.zeros(self.machine_size, dtype=np.int32)
+        self.machine_finish_time_arr = np.zeros(self.n_m, dtype=np.int32)
         # 用于记录
         self.episode_count = kwargs.get("episode") if "episode" in kwargs else 0
         self.phase = kwargs.get("phase") if "phase" in kwargs else "train"
@@ -76,7 +74,7 @@ class JobEnv(gym.Env):
     def reset(self, **kwargs) -> Union[ObsType, Tuple[ObsType, dict]]:
         self.init_data(**kwargs)
         # 处理时间
-        process_time_channel = copy.deepcopy(self.instance.processing_time)
+        process_time_channel = copy.deepcopy(self.task_durations)
         # 调度完成时
         schedule_finish_channel = np.zeros_like(process_time_channel)
         # 机器利用率
@@ -96,7 +94,7 @@ class JobEnv(gym.Env):
         i, j = rule(
             self.last_process_time_channel,
             make_span=self.make_span,
-            machine_nos=self.job_machine_nos,
+            machine_nos=self.task_machines,
             machine_times=self.machine_finish_time_arr,
         )
 
@@ -130,7 +128,7 @@ class JobEnv(gym.Env):
     def compute_reward(self, process_time_channel):
         # u_t = self.total_working_time / (self.machine_size * self.make_span)
         # 总working time可能指的是当前处理的所有operation的总时间
-        u_t = np.sum(self.initial_process_time_channel - process_time_channel) / (self.machine_size * self.make_span)
+        u_t = np.sum(self.task_durations - process_time_channel) / (self.n_m * self.make_span)
         reward = u_t - self.u_t
         self.u_t = u_t
         return reward
@@ -140,15 +138,15 @@ class JobEnv(gym.Env):
         if j == 0:
             # 处于某个job第一个operation位置，只需要关注机器时间
             schedule_finish_channel[i, j] = (
-                self.initial_process_time_channel[i, j] + self.machine_finish_time_arr[self.job_machine_nos[i, j]]
+                self.task_durations[i, j] + self.machine_finish_time_arr[self.task_machines[i, j]]
             )
         else:
             # 对比上一个操作完成时间和对应机器时间，取大的
-            schedule_finish_channel[i, j] = self.initial_process_time_channel[i, j] + max(
-                self.machine_finish_time_arr[self.job_machine_nos[i, j]], schedule_finish_channel[i, j - 1]
+            schedule_finish_channel[i, j] = self.task_durations[i, j] + max(
+                self.machine_finish_time_arr[self.task_machines[i, j]], schedule_finish_channel[i, j - 1]
             )
         # 更新机器完成时间(某个作业在该机器上的完成时间即为该机器到目前位置的完成时间)
-        self.machine_finish_time_arr[self.job_machine_nos[i, j]] = schedule_finish_channel[i, j]
+        self.machine_finish_time_arr[self.task_machines[i, j]] = schedule_finish_channel[i, j]
         # 更新机器完成周期
         self.make_span = np.max(self.machine_finish_time_arr)
 
@@ -168,7 +166,7 @@ class JobEnv(gym.Env):
         job_inds = np.argwhere(process_time_channel == 0)
         machine_finish_time_table = np.zeros_like(process_time_channel)
         machine_finish_time_table[job_inds[:, 0], job_inds[:, 1]] = self.machine_finish_time_arr[
-            self.job_machine_nos[job_inds[:, 0], job_inds[:, 1]]
+            self.task_machines[job_inds[:, 0], job_inds[:, 1]]
         ]
         return machine_finish_time_table / self.make_span
 
@@ -202,20 +200,20 @@ class JobEnv(gym.Env):
         def update(frame_ind):
             i, j = self.history_i_j[frame_ind]
             # for _, (i, j) in enumerate(self.history_i_j):
-            colors = ["#ffffff" for _ in range(self.machine_size)]
+            colors = ["#ffffff" for _ in range(self.n_m)]
             if i is not None and j is not None:
                 cell_colors[i][j] = "#ff0521"
                 if frame_ind > 1:
                     cell_colors[self.history_i_j[frame_ind - 1][0]][self.history_i_j[frame_ind - 1][1]] = "#B4EEB4"
-                colors[self.job_machine_nos[i, j]] = "#ff0521"
+                colors[self.task_machines[i, j]] = "#ff0521"
             ax11 = fig.add_subplot(2, 4, 1)
             ax11.set_title("Operation time")
-            ax11.table(cellText=self.initial_process_time_channel, loc="center", cellColours=cell_colors)
+            ax11.table(cellText=self.task_durations, loc="center", cellColours=cell_colors)
             ax11.axis("off")
 
             ax12 = fig.add_subplot(2, 4, 2)
             ax12.set_title("machine number")
-            ax12.table(cellText=self.job_machine_nos, loc="center", cellColours=cell_colors)
+            ax12.table(cellText=self.task_machines, loc="center", cellColours=cell_colors)
             ax12.axis("off")
 
             ax13 = fig.add_subplot(2, 4, 3)
@@ -273,9 +271,9 @@ class JobEnv(gym.Env):
 
     def build_cell_colors(self):
         cell_colors = []
-        for i in range(self.job_size):
+        for i in range(self.n_j):
             colors = []
-            for j in range(self.machine_size):
+            for j in range(self.n_m):
                 colors.append("#ffffff")
             cell_colors.append(colors)
         return cell_colors
