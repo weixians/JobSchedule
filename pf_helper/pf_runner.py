@@ -97,13 +97,13 @@ class PfRunner:
                         break
                 if self.args.render:
                     self.env.render()
-                logging.info("makespan={}".format(self.env.make_span))
                 statistics = agent.get_statistics()
                 self.add_scalar(phase + "/episode_reward", R, i)
-                self.add_scalar(phase + "/makespan", self.env.make_span, i)
                 self.add_scalar(phase + "/average_q", statistics[0][1], i)
                 self.add_scalar(phase + "/loss", statistics[1][1], i)
                 total_make_span += self.env.make_span
+        self.add_scalar(phase + "/avg_makespan",  total_make_span / n_episodes, i)
+        logging.info("makespan={}".format( total_make_span / n_episodes))
         return total_make_span / n_episodes
 
     def add_scalar(self, tag: str, scalar_value, global_step: int):
